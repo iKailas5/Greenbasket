@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <meta name="theme-color" content="#1b4332"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="GreenBasket"/>
+  <title>GreenBasket</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet"/>
+  <script>
+    // Inject PWA manifest inline
+    const mf={name:"GreenBasket",short_name:"GreenBasket",start_url:"./",display:"standalone",background_color:"#1b4332",theme_color:"#1b4332",orientation:"portrait",icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%231b4332'/%3E%3Ctext x='96' y='130' text-anchor='middle' font-size='100'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E",sizes:"192x192",type:"image/svg+xml",purpose:"any maskable"},{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%231b4332'/%3E%3Ctext x='256' y='350' text-anchor='middle' font-size='280'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]};
+    const mb=new Blob([JSON.stringify(mf)],{type:"application/manifest+json"});
+    const ml=document.createElement("link");ml.rel="manifest";ml.href=URL.createObjectURL(mb);
+    document.currentScript.parentNode.appendChild(ml);
+    // Register inline SW
+    if("serviceWorker"in navigator){
+      const sw=`const C="gb1";self.addEventListener("install",()=>self.skipWaiting());self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{const k=r.clone();caches.open(C).then(ca=>ca.put(e.request,k));return r})))});`;
+      const sb=new Blob([sw],{type:"application/javascript"});
+      window.addEventListener("load",()=>navigator.serviceWorker.register(URL.createObjectURL(sb),{scope:"./"}).catch(()=>{}));
+    }
+  </script>
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green-deep: #1b4332;
+      --green-mid:  #2d6a4f;
+      --green-light:#40916c;
+      --green-pale: #d8f3dc;
+      --bg:         #f4f9f4;
+      --white:      #ffffff;
+      --text:       #111827;
+      --muted:      #6b7280;
+      --border:     #e5e7eb;
+      --danger:     #ef4444;
+      --safe-top:   env(safe-area-inset-top, 0px);
+      --safe-bot:   env(safe-area-inset-bottom, 0px);
+    }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); }
+    body { font-family: 'Nunito', sans-serif; -webkit-font-smoothing: antialiased; }
+    #app { max-width: 430px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden; background: var(--bg); }
+    ::-webkit-scrollbar { display: none; }
+    input, select, textarea, button { font-family: inherit; }
+    input:focus, select:focus { outline: none; }
+
+    /* ── HEADER ── */
+    #header {
+      background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+      padding: calc(var(--safe-top) + 14px) 18px 14px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 20px rgba(27,67,50,.35);
+      z-index: 50;
+    }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .header-brand { font-size: 10px; color: rgba(255,255,255,.6); font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+    .header-title { font-size: 20px; font-weight: 900; color: #fff; line-height: 1.2; }
+    .header-actions { display: flex; gap: 8px; }
+    .hbtn { background: rgba(255,255,255,.18); border: none; border-radius: 10px; padding: 7px 11px; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; position: relative; transition: background .15s; }
+    .hbtn:active { background: rgba(255,255,255,.3); }
+    .cart-badge { position: absolute; top: -5px; right: -5px; background: #ff5252; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; animation: pop .25s cubic-bezier(.34,1.56,.64,1); }
+    .search-bar { background: rgba(255,255,255,.16); border-radius: 12px; display: flex; align-items: center; padding: 9px 14px; gap: 8px; }
+    .search-bar input { background: none; border: none; color: #fff; flex: 1; font-size: 14px; font-weight: 700; }
+    .search-bar input::placeholder { color: rgba(255,255,255,.55); }
+    .search-clear { background: none; border: none; color: rgba(255,255,255,.6); font-size: 14px; cursor: pointer; }
+
+    /* ── VIEWS ── */
+    #content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ── CATEGORIES ── */
+    .cats { display: flex; gap: 8px; padding: 12px 14px 6px; overflow-x: auto; scrollbar-width: none; }
+    .cat-chip { flex-shrink: 0; padding: 6px 15px; border-radius: 20px; border: none; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .cat-chip.active { background: var(--green-mid); color: #fff; box-shadow: 0 3px 10px rgba(45,106,79,.35); }
+    .cat-chip.inactive { background: var(--white); color: #555; box-shadow: 0 1px 4px rgba(0,0,0,.09); }
+
+    /* ── PRODUCT GRID ── */
+    .sort-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 16px 4px; }
+    .sort-row span { font-size: 12px; color: var(--muted); font-weight: 700; }
+    .sort-row select { border: 1.5px solid var(--border); border-radius: 10px; padding: 5px 10px; font-size: 12px; font-weight: 700; color: var(--text); background: var(--white); cursor: pointer; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 6px 12px 100px; }
+    .pcard { background: var(--white); border-radius: 18px; padding: 14px 12px 12px; box-shadow: 0 2px 10px rgba(0,0,0,.07); position: relative; transition: transform .13s; }
+    .pcard:active { transform: scale(.97); }
+    .pbadge { position: absolute; top: 9px; left: 9px; font-size: 9px; font-weight: 900; border-radius: 6px; padding: 2px 7px; }
+    .pemoji { text-align: center; font-size: 36px; margin: 10px 0 6px; }
+    .pname { font-weight: 800; font-size: 13px; color: var(--text); margin-bottom: 2px; }
+    .punit { font-size: 11px; color: #aaa; font-weight: 600; margin-bottom: 8px; }
+    .pfoot { display: flex; justify-content: space-between; align-items: center; }
+    .pprice { font-size: 15px; font-weight: 900; color: var(--green-mid); }
+    .add-btn { background: var(--green-mid); color: #fff; border: none; border-radius: 10px; width: 32px; height: 32px; font-size: 22px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .1s; }
+    .add-btn:active { transform: scale(.9); }
+    .qty-ctrl { display: flex; align-items: center; gap: 5px; }
+    .qty-btn { border-radius: 8px; width: 27px; height: 27px; font-size: 17px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .1s; border: none; }
+    .qty-btn:active { transform: scale(.9); }
+    .qty-btn.minus { background: #f0faf4; color: var(--green-mid); border: 1.5px solid #b7e4c7; }
+    .qty-btn.plus  { background: var(--green-mid); color: #fff; }
+    .qty-num { font-weight: 900; font-size: 13px; color: var(--green-mid); min-width: 18px; text-align: center; }
+
+    /* ── CART ── */
+    .cart-list { padding: 12px 14px 0; display: flex; flex-direction: column; gap: 10px; }
+    .citem { background: var(--white); border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); animation: slideUp .25s ease; }
+    .citem-emoji { font-size: 30px; }
+    .citem-info { flex: 1; }
+    .citem-name { font-weight: 800; font-size: 14px; }
+    .citem-unit { font-size: 11px; color: #aaa; font-weight: 600; }
+    .citem-price { font-size: 14px; font-weight: 900; color: var(--green-mid); margin-top: 2px; }
+    .del-btn { background: none; border: none; font-size: 18px; color: #ddd; cursor: pointer; }
+    .bill-box { margin: 14px 14px 0; background: var(--white); border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .bill-title { font-weight: 800; font-size: 15px; margin-bottom: 12px; }
+    .bill-row { display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-bottom: 5px; font-weight: 600; }
+    .bill-divider { height: 1px; background: var(--border); margin: 10px 0; }
+    .bill-total { display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; }
+    .pay-preview { margin: 12px 14px 0; background: var(--white); border-radius: 16px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .pay-preview-label { font-size: 12px; font-weight: 800; color: #aaa; margin-bottom: 10px; letter-spacing: .5px; }
+    .pay-icons { display: flex; gap: 10px; }
+    .pay-icon-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .pay-icon-circle { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #fff; font-family: serif; }
+    .pay-icon-label { font-size: 9px; font-weight: 800; color: #888; }
+
+    /* ── FIXED BOTTOM BAR ── */
+    .checkout-bar { position: sticky; bottom: 0; padding: 12px 16px calc(var(--safe-bot) + 14px); background: var(--bg); border-top: 1px solid var(--border); }
+    .checkout-btn { width: 100%; background: linear-gradient(135deg, var(--green-deep), var(--green-mid)); color: #fff; border: none; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 18px rgba(27,67,50,.35); display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform .15s; }
+    .checkout-btn:active { transform: scale(.98); }
+
+    /* ── BOTTOM NAV ── */
+    #nav { display: flex; background: var(--white); border-top: 1.5px solid var(--border); padding: 8px 0 calc(var(--safe-bot) + 10px); box-shadow: 0 -3px 15px rgba(0,0,0,.06); flex-shrink: 0; }
+    .nav-btn { flex: 1; background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; font-weight: 700; cursor: pointer; transition: color .15s; position: relative; }
+    .nav-btn.active { color: var(--green-mid); font-weight: 900; }
+    .nav-btn.inactive { color: #bbb; }
+    .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-badge { position: absolute; top: 0; right: 18%; background: #ff5252; color: #fff; border-radius: 50%; width: 15px; height: 15px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+
+    /* ── PAYMENT SHEET ── */
+    #pay-overlay { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; justify-content: flex-end; }
+    .pay-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
+    .pay-sheet { position: relative; background: var(--white); border-radius: 28px 28px 0 0; padding: 0 0 calc(var(--safe-bot) + 24px); max-height: 92vh; overflow-y: auto; box-shadow: 0 -8px 40px rgba(0,0,0,.2); animation: sheetUp .3s cubic-bezier(.22,.61,.36,1); }
+    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .sheet-handle { width: 44px; height: 5px; background: var(--border); border-radius: 4px; margin: 14px auto 0; }
+    .pay-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 12px; }
+    .pay-amount-label { font-size: 12px; color: #aaa; font-weight: 700; }
+    .pay-amount-val { font-size: 26px; font-weight: 900; color: var(--text); }
+    .close-btn { background: #f5f5f5; border: none; border-radius: 12px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #888; }
+    .section-label { font-size: 11px; font-weight: 800; color: #aaa; letter-spacing: 1px; padding: 0 20px; margin-bottom: 8px; }
+    .upi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; padding: 0 20px 16px; }
+    .upi-card { background: var(--bg); border: 2px solid transparent; border-radius: 16px; padding: 12px 6px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: border-color .15s, transform .12s; }
+    .upi-card:active { transform: scale(.95); }
+    .upi-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.2); font-family: serif; }
+    .upi-name { font-size: 10px; font-weight: 800; }
+    .cod-card { display: flex; align-items: center; gap: 14px; margin: 0 20px; background: #f0faf4; border: 2px solid transparent; border-radius: 16px; padding: 14px 16px; cursor: pointer; transition: border-color .15s; }
+    .cod-card:active { transform: scale(.98); }
+    .cod-icon { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg,#388e3c,#66bb6a); display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(56,142,60,.3); flex-shrink: 0; }
+    .cod-info { flex: 1; }
+    .cod-name { font-weight: 800; font-size: 14px; color: var(--text); }
+    .cod-desc { font-size: 11px; color: #888; font-weight: 600; margin-top: 2px; }
+
+    /* QR Screen */
+    .qr-screen { padding: 16px 20px; }
+    .qr-back { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .back-btn { background: #f5f5f5; border: none; border-radius: 10px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; }
+    .qr-method-name { font-weight: 900; font-size: 16px; }
+    .qr-method-sub { font-size: 11px; color: #aaa; font-weight: 600; }
+    .qr-box { border-radius: 24px; padding: 22px; text-align: center; border: 2px solid rgba(0,0,0,.06); margin-bottom: 14px; }
+    .qr-label { font-size: 12px; color: #888; font-weight: 700; margin-bottom: 12px; letter-spacing: .5px; }
+    .qr-wrap { display: inline-block; padding: 12px; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+    .qr-upi-id { margin-top: 14px; font-size: 13px; font-weight: 800; }
+    .qr-total { font-size: 22px; font-weight: 900; color: var(--text); margin-top: 6px; }
+    .qr-timer { margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: #aaa; font-weight: 700; }
+    .timer-circle { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--green-mid); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: var(--green-mid); transition: border-color .3s, color .3s; }
+    .timer-circle.urgent { border-color: #ff5252; color: #ff5252; }
+    .paid-btn { width: 100%; border: none; border-radius: 16px; padding: 15px; font-size: 15px; font-weight: 900; color: #fff; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+    .qr-hint { text-align: center; font-size: 11px; color: #bbb; font-weight: 600; margin-top: 10px; }
+
+    /* UPI ID Input */
+    .upi-input-screen { padding: 16px 20px; }
+    .amount-box { background: #f8f9fa; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+    .amount-label { font-size: 12px; color: #aaa; font-weight: 700; margin-bottom: 8px; }
+    .amount-big { font-size: 32px; font-weight: 900; color: var(--text); }
+    .field-label { font-size: 12px; font-weight: 800; color: #555; display: block; margin-bottom: 8px; }
+    .upi-field-wrap { position: relative; margin-bottom: 8px; }
+    .upi-field { width: 100%; border: 2px solid var(--border); border-radius: 14px; padding: 13px 40px 13px 16px; font-size: 14px; font-weight: 700; color: var(--text); background: #fafafa; transition: border-color .2s; }
+    .upi-field.valid { border-color: var(--green-mid); }
+    .upi-field.error { border-color: var(--danger); }
+    .upi-check { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; }
+    .upi-error { color: var(--danger); font-size: 11px; font-weight: 700; margin-bottom: 10px; }
+    .upi-suffix-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .suffix-chip { background: #f0f4ff; border: 1.5px solid #c7d7ff; border-radius: 10px; padding: 5px 12px; font-size: 11px; font-weight: 800; color: #3d5afe; cursor: pointer; }
+    .pay-now-btn { width: 100%; border: none; border-radius: 16px; padding: 15px; font-size: 15px; font-weight: 900; color: #fff; cursor: pointer; transition: all .2s; }
+
+    /* Processing / Done */
+    .processing-screen { padding: 40px 20px; text-align: center; }
+    .proc-icon { font-size: 56px; margin-bottom: 16px; display: inline-block; }
+    .proc-title { font-weight: 900; font-size: 18px; color: var(--text); margin-bottom: 8px; }
+    .proc-sub { font-size: 13px; color: #aaa; font-weight: 600; }
+    .dots { display: flex; justify-content: center; gap: 8px; margin-top: 24px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; animation: bounce .8s ease-in-out infinite; }
+    .done-screen { padding: 36px 20px; text-align: center; }
+    .done-circle { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 36px; animation: popIn .4s cubic-bezier(.34,1.56,.64,1); }
+    .done-title { font-weight: 900; font-size: 20px; color: var(--text); margin-bottom: 6px; }
+    .done-sub { font-size: 13px; color: #888; font-weight: 600; margin-bottom: 4px; }
+    .done-txn { font-size: 11px; color: #aaa; font-weight: 700; margin-bottom: 28px; }
+    .done-btn { background: linear-gradient(135deg,var(--green-deep),var(--green-mid)); color: #fff; border: none; border-radius: 16px; padding: 14px 40px; font-size: 15px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 16px rgba(27,67,50,.3); }
+
+    /* ── ORDERS ── */
+    .orders-list { padding: 12px 14px 100px; display: flex; flex-direction: column; gap: 12px; }
+    .ocard { background: var(--white); border-radius: 18px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.07); animation: slideUp .25s ease; }
+    .ocard-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .ocard-id { font-weight: 900; font-size: 14px; }
+    .ocard-status { background: #e8f5e9; color: #2e7d32; border-radius: 8px; padding: 3px 10px; font-size: 11px; font-weight: 800; }
+    .ocard-meta { font-size: 11px; color: #aaa; font-weight: 600; margin-bottom: 8px; }
+    .ocard-pm { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 4px 10px; margin-bottom: 10px; }
+    .ocard-pm-icon { width: 18px; height: 18px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: 900; font-family: serif; }
+    .ocard-pm-name { font-size: 11px; font-weight: 800; }
+    .ocard-item { display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-bottom: 4px; font-weight: 600; }
+    .ocard-divider { height: 1px; background: var(--border); margin: 10px 0; }
+    .ocard-total { display: flex; justify-content: space-between; font-weight: 900; font-size: 15px; }
+
+    /* ── ADMIN ── */
+    .admin-tabs { display: flex; background: var(--white); border-bottom: 2px solid var(--border); }
+    .atab { flex: 1; padding: 13px 0; border: none; background: none; font-weight: 800; font-size: 13px; cursor: pointer; transition: color .15s; border-bottom: 3px solid transparent; }
+    .atab.active { color: var(--green-mid); border-bottom-color: var(--green-mid); }
+    .atab.inactive { color: #aaa; }
+    .plist { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .plist-item { background: var(--white); border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .plist-emoji { font-size: 28px; }
+    .plist-info { flex: 1; }
+    .plist-name { font-weight: 800; font-size: 14px; }
+    .plist-sub { font-size: 11px; color: #aaa; font-weight: 600; }
+    .plist-price { font-size: 13px; font-weight: 900; color: var(--green-mid); }
+    .plist-actions { display: flex; gap: 6px; }
+    .edit-btn { background: #e3f2fd; color: #1565c0; border: none; border-radius: 10px; padding: 7px 12px; font-weight: 800; font-size: 12px; cursor: pointer; }
+    .del-btn2 { background: #fce4ec; color: #c62828; border: none; border-radius: 10px; padding: 7px 12px; font-weight: 800; font-size: 12px; cursor: pointer; }
+    .pform { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 100px; }
+    .form-label { font-size: 12px; font-weight: 800; color: #555; display: block; margin-bottom: 6px; }
+    .form-input { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 11px 14px; font-size: 14px; font-weight: 700; color: var(--text); background: #fafafa; transition: border-color .2s; }
+    .form-input:focus { border-color: var(--green-mid); }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { padding: 6px 13px; border-radius: 20px; border: none; font-size: 12px; font-weight: 800; cursor: pointer; transition: all .15s; }
+    .chip.active { background: var(--green-mid); color: #fff; box-shadow: 0 2px 8px rgba(45,106,79,.3); }
+    .chip.inactive { background: var(--white); color: #555; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .emoji-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .emoji-btn { font-size: 22px; border-radius: 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #eee; background: var(--white); transition: all .15s; }
+    .emoji-btn.active { background: var(--green-pale); border-color: var(--green-mid); }
+    .save-btn { background: linear-gradient(135deg,var(--green-deep),var(--green-light)); color: #fff; border: none; border-radius: 16px; padding: 15px; font-size: 15px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 16px rgba(27,67,50,.3); }
+    .cancel-btn { background: #f5f5f5; color: #888; border: none; border-radius: 16px; padding: 13px; font-size: 14px; font-weight: 800; cursor: pointer; }
+
+    /* ── EMPTY ── */
+    .empty { text-align: center; padding: 60px 20px; color: #bbb; }
+    .empty-icon { font-size: 56px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; font-weight: 700; color: #888; }
+    .empty-btn { margin-top: 18px; background: var(--green-mid); color: #fff; border: none; border-radius: 14px; padding: 12px 28px; font-weight: 800; font-size: 14px; cursor: pointer; }
+
+    /* ── INSTALL BANNER ── */
+    #install-banner { background: linear-gradient(135deg,var(--green-deep),var(--green-mid)); color: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; animation: slideUp .3s ease; flex-shrink: 0; }
+    .install-text { flex: 1; font-size: 12px; font-weight: 700; line-height: 1.4; }
+    .install-text strong { font-size: 13px; font-weight: 900; }
+    .install-yes { background: rgba(255,255,255,.25); border: none; border-radius: 10px; padding: 8px 14px; color: #fff; font-weight: 900; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+    .install-no { background: none; border: none; color: rgba(255,255,255,.6); font-size: 16px; cursor: pointer; }
+
+    /* ── TOAST ── */
+    #toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 999; border-radius: 14px; padding: 10px 22px; font-size: 13px; font-weight: 800; box-shadow: 0 4px 20px rgba(0,0,0,.2); white-space: nowrap; animation: pop .25s ease; pointer-events: none; }
+    #toast.success { background: var(--green-mid); color: #fff; }
+    #toast.error   { background: var(--danger); color: #fff; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes slideUp  { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes pop      { from { opacity:0; transform: translateX(-50%) scale(.5); } to { opacity:1; transform: translateX(-50%) scale(1); } }
+    @keyframes popIn    { from { transform:scale(.3); opacity:0; } to { transform:scale(1); opacity:1; } }
+    @keyframes bounce   { 0%,80%,100%{ transform:scale(.6); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
+    @keyframes spin     { from { transform:rotate(0); } to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="install-banner" style="display:none">
+    <div style="font-size:26px">🌿</div>
+    <div class="install-text"><strong>Install GreenBasket</strong><br>Add to home screen for the full app experience</div>
+    <button class="install-yes" id="install-yes-btn">Install</button>
+    <button class="install-no" id="install-no-btn">✕</button>
+  </div>
+  <div id="header"></div>
+  <div id="content"></div>
+  <div id="nav"></div>
+</div>
+<div id="toast" style="display:none"></div>
+<div id="pay-overlay" style="display:none"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const SEED = [
+  {id:"p1",name:"Spinach",category:"Leafy",price:25,unit:"250g",emoji:"🥬",badge:"Fresh",stock:50},
+  {id:"p2",name:"Carrot",category:"Root",price:30,unit:"500g",emoji:"🥕",badge:"Fresh",stock:80},
+  {id:"p3",name:"Tomato",category:"Fruit Veg",price:35,unit:"500g",emoji:"🍅",badge:"Popular",stock:90},
+  {id:"p4",name:"Coriander",category:"Herbs",price:10,unit:"1 bunch",emoji:"🌿",badge:"Fresh",stock:70},
+  {id:"p5",name:"Garlic",category:"Exotic",price:50,unit:"250g",emoji:"🧄",badge:"Popular",stock:75},
+  {id:"p6",name:"Potato",category:"Root",price:25,unit:"1 kg",emoji:"🥔",badge:null,stock:100},
+  {id:"p7",name:"Broccoli",category:"Exotic",price:60,unit:"1 head",emoji:"🥦",badge:"Organic",stock:45},
+  {id:"p8",name:"Mint",category:"Herbs",price:10,unit:"1 bunch",emoji:"🌿",badge:"Fresh",stock:65},
+  {id:"p9",name:"Cabbage",category:"Leafy",price:20,unit:"1 kg",emoji:"🥬",badge:null,stock:60},
+  {id:"p10",name:"Onion",category:"Root",price:30,unit:"1 kg",emoji:"🧅",badge:null,stock:100},
+];
+
+const BADGE_STYLES = {
+  Fresh:   {bg:"#e8f5e9",color:"#2e7d32"},
+  Organic: {bg:"#e3f2fd",color:"#1565c0"},
+  Seasonal:{bg:"#fff8e1",color:"#f57f17"},
+  Popular: {bg:"#fce4ec",color:"#c62828"},
+  Premium: {bg:"#ede7f6",color:"#4527a0"},
+};
+
+const PAYMENT_METHODS = [
+  {id:"gpay",    name:"Google Pay",   shortName:"GPay",    icon:"G",  color:"#4285F4", gradient:"linear-gradient(135deg,#4285F4,#34A853)", bg:"#e8f0fe", type:"upi"},
+  {id:"phonepe", name:"PhonePe",      shortName:"PhonePe", icon:"P",  color:"#5f259f", gradient:"linear-gradient(135deg,#5f259f,#8b44d4)", bg:"#f3e8ff", type:"upi"},
+  {id:"paytm",   name:"Paytm",        shortName:"Paytm",   icon:"₹",  color:"#00BAF2", gradient:"linear-gradient(135deg,#00BAF2,#0077c2)", bg:"#e0f7fa", type:"upi"},
+  {id:"upi",     name:"Other UPI",    shortName:"UPI",     icon:"⚡", color:"#FF6B00", gradient:"linear-gradient(135deg,#FF6B00,#ff9800)", bg:"#fff3e0", type:"upi_id"},
+  {id:"cod",     name:"Cash on Delivery", shortName:"COD", icon:"💵", color:"#388e3c", gradient:"linear-gradient(135deg,#388e3c,#66bb6a)", bg:"#e8f5e9", type:"cash"},
+];
+
+const EMOJIS = ["🥬","🥕","🍅","🌿","🧄","🥔","🥦","🧅","🫑","🍆","🥒","🌽","🍠","🔴","🟣","🌱","🫘","🌾","🫚","🥑"];
+const CATEGORIES_BASE = ["Leafy","Root","Fruit Veg","Herbs","Exotic","Other"];
+
+let state = {
+  view: "shop",       // shop | cart | orders | admin
+  adminTab: "list",   // list | add | edit
+  search: "",
+  catFilter: "All",
+  sortBy: "name",
+  editProduct: null,
+  form: {name:"",category:"Leafy",price:"",unit:"",emoji:"🥬",badge:"",stock:""},
+  payStep: "select",  // select | qr | upi-id | processing | done
+  payMethod: null,
+  upiInput: "",
+  upiError: "",
+  timer: 30,
+  timerInterval: null,
+};
+
+// ─ Persistence ─
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+let products = load("veg:products", SEED);
+let cart     = load("veg:cart",     {});
+let orders   = load("veg:orders",   []);
+
+function saveAll() {
+  save("veg:products", products);
+  save("veg:cart",     cart);
+  save("veg:orders",   orders);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════
+function cartCount() { return Object.values(cart).reduce((s,q)=>s+q,0); }
+function cartItems() {
+  return Object.entries(cart)
+    .map(([id,qty])=>({...products.find(p=>p.id===id),qty}))
+    .filter(i=>i.id);
+}
+function cartTotal() { return cartItems().reduce((s,i)=>s+i.price*i.qty,0); }
+
+function getCategories() {
+  return ["All",...[...new Set(products.map(p=>p.category))].sort()];
+}
+
+function getFiltered() {
+  let list = [...products];
+  if (state.catFilter !== "All") list = list.filter(p=>p.category===state.catFilter);
+  if (state.search.trim()) list = list.filter(p=>p.name.toLowerCase().includes(state.search.toLowerCase()));
+  if (state.sortBy === "price-asc")  list.sort((a,b)=>a.price-b.price);
+  else if (state.sortBy === "price-desc") list.sort((a,b)=>b.price-a.price);
+  else list.sort((a,b)=>a.name.localeCompare(b.name));
+  return list;
+}
+
+let toastTimeout;
+function showToast(msg, type="success") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = type;
+  t.style.display = "block";
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(()=>{ t.style.display="none"; }, 2200);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function render() {
+  renderHeader();
+  renderContent();
+  renderNav();
+}
+
+function renderHeader() {
+  const h = document.getElementById("header");
+  const titles = {shop:"Fresh Vegetables",cart:"My Cart",orders:"Order History",admin:"Admin Panel"};
+  const cnt = cartCount();
+  h.innerHTML = `
+    <div class="header-row">
+      <div>
+        <div class="header-brand">🌿 GreenBasket</div>
+        <div class="header-title">${titles[state.view]||""}</div>
+      </div>
+      <div class="header-actions">
+        ${state.view!=="admin" ? `<button class="hbtn" onclick="goto('admin')">⚙ Admin</button>` : ""}
+        ${state.view!=="cart" ? `<button class="hbtn" onclick="goto('cart')" style="font-size:18px">🛒${cnt>0?`<span class="cart-badge">${cnt}</span>`:""}</button>` : ""}
+        ${state.view!=="shop" ? `<button class="hbtn" onclick="goto('shop')">🏪</button>` : ""}
+      </div>
+    </div>
+    ${state.view==="shop" ? `
+    <div class="search-bar">
+      <span>🔍</span>
+      <input id="search-inp" placeholder="Search vegetables..." value="${state.search}" oninput="onSearch(this.value)" />
+      ${state.search ? `<button class="search-clear" onclick="clearSearch()">✕</button>` : ""}
+    </div>` : ""}
+  `;
+}
+
+function renderNav() {
+  const tabs = [
+    {id:"shop",icon:"🏪",label:"Shop"},
+    {id:"cart",icon:"🛒",label:"Cart"},
+    {id:"orders",icon:"📦",label:"Orders"},
+    {id:"admin",icon:"⚙️",label:"Admin"},
+  ];
+  const cnt = cartCount();
+  document.getElementById("nav").innerHTML = tabs.map(t=>`
+    <button class="nav-btn ${state.view===t.id?"active":"inactive"}" onclick="goto('${t.id}')">
+      <span class="nav-icon">${t.icon}</span>
+      ${t.label}
+      ${t.id==="cart"&&cnt>0 ? `<span class="nav-badge">${cnt}</span>` : ""}
+    </button>
+  `).join("");
+}
+
+function renderContent() {
+  const c = document.getElementById("content");
+  if (state.view === "shop")   { c.innerHTML = renderShop(); }
+  else if (state.view === "cart")   { c.innerHTML = renderCart(); }
+  else if (state.view === "orders") { c.innerHTML = renderOrders(); }
+  else if (state.view === "admin")  { c.innerHTML = renderAdmin(); }
+}
+
+// ── SHOP ──────────────────────────────────────────────────
+function renderShop() {
+  const cats = getCategories();
+  const filtered = getFiltered();
+  return `
+    <div class="cats">
+      ${cats.map(cat=>`
+        <button class="cat-chip ${state.catFilter===cat?"active":"inactive"}" onclick="setCat('${cat}')">${cat}</button>
+      `).join("")}
+    </div>
+    <div class="sort-row">
+      <span>${filtered.length} products</span>
+      <select onchange="setSort(this.value)">
+        <option value="name" ${state.sortBy==="name"?"selected":""}>A–Z</option>
+        <option value="price-asc" ${state.sortBy==="price-asc"?"selected":""}>Price ↑</option>
+        <option value="price-desc" ${state.sortBy==="price-desc"?"selected":""}>Price ↓</option>
+      </select>
+    </div>
+    <div class="grid">
+      ${filtered.length===0 ? `<div style="grid-column:1/-1"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No products found</div><button class="empty-btn" onclick="clearFilters()">Clear Filters</button></div></div>` : ""}
+      ${filtered.map(p=>{
+        const qty = cart[p.id]||0;
+        const bs = BADGE_STYLES[p.badge];
+        return `
+        <div class="pcard">
+          ${p.badge&&bs?`<span class="pbadge" style="background:${bs.bg};color:${bs.color}">${p.badge}</span>`:""}
+          <div class="pemoji">${p.emoji}</div>
+          <div class="pname">${p.name}</div>
+          <div class="punit">${p.unit}</div>
+          <div class="pfoot">
+            <span class="pprice">₹${p.price}</span>
+            ${qty===0
+              ? `<button class="add-btn" onclick="addToCart('${p.id}')">+</button>`
+              : `<div class="qty-ctrl">
+                  <button class="qty-btn minus" onclick="decCart('${p.id}')">−</button>
+                  <span class="qty-num">${qty}</span>
+                  <button class="qty-btn plus" onclick="addToCart('${p.id}')">+</button>
+                </div>`
+            }
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+// ── CART ──────────────────────────────────────────────────
+function renderCart() {
+  const items = cartItems();
+  const total = cartTotal();
+  if (items.length === 0) return `
+    <div class="empty" style="padding-top:80px">
+      <div class="empty-icon">🛒</div>
+      <div class="empty-text">Your cart is empty</div>
+      <button class="empty-btn" onclick="goto('shop')">Browse Vegetables</button>
+    </div>`;
+  return `
+    <div class="cart-list">
+      ${items.map(i=>`
+        <div class="citem">
+          <div class="citem-emoji">${i.emoji}</div>
+          <div class="citem-info">
+            <div class="citem-name">${i.name}</div>
+            <div class="citem-unit">${i.unit}</div>
+            <div class="citem-price">₹${i.price*i.qty}</div>
+          </div>
+          <div class="qty-ctrl">
+            <button class="qty-btn minus" onclick="decCart('${i.id}')">−</button>
+            <span class="qty-num">${i.qty}</span>
+            <button class="qty-btn plus" onclick="addToCart('${i.id}')">+</button>
+          </div>
+          <button class="del-btn" onclick="delCart('${i.id}')">🗑</button>
+        </div>`).join("")}
+    </div>
+    <div class="bill-box">
+      <div class="bill-title">Bill Summary</div>
+      ${items.map(i=>`<div class="bill-row"><span>${i.name} × ${i.qty}</span><span>₹${i.price*i.qty}</span></div>`).join("")}
+      <div class="bill-divider"></div>
+      <div class="bill-total"><span>Total</span><span style="color:var(--green-mid)">₹${total}</span></div>
+    </div>
+    <div class="pay-preview">
+      <div class="pay-preview-label">PAY VIA</div>
+      <div class="pay-icons">
+        ${PAYMENT_METHODS.map(pm=>`
+          <div class="pay-icon-item">
+            <div class="pay-icon-circle" style="background:${pm.gradient}">${pm.icon}</div>
+            <span class="pay-icon-label">${pm.shortName}</span>
+          </div>`).join("")}
+      </div>
+    </div>
+    <div class="checkout-bar">
+      <button class="checkout-btn" onclick="openPayment()">
+        <span>💳</span> Proceed to Pay · ₹${total}
+      </button>
+    </div>
+  `;
+}
+
+// ── ORDERS ────────────────────────────────────────────────
+function renderOrders() {
+  if (orders.length === 0) return `
+    <div class="empty" style="padding-top:80px">
+      <div class="empty-icon">📦</div>
+      <div class="empty-text">No orders yet</div>
+    </div>`;
+  return `<div class="orders-list">${orders.map(o=>{
+    const pm = PAYMENT_METHODS.find(x=>x.id===o.paymentMethod);
+    return `
+    <div class="ocard">
+      <div class="ocard-head">
+        <span class="ocard-id">${o.id}</span>
+        <span class="ocard-status">✅ ${o.status}</span>
+      </div>
+      <div class="ocard-meta">${o.date} · ${o.time}</div>
+      ${pm?`<div class="ocard-pm" style="background:${pm.bg}">
+        <div class="ocard-pm-icon" style="background:${pm.gradient}">${pm.icon}</div>
+        <span class="ocard-pm-name" style="color:${pm.color}">Paid via ${pm.name}</span>
+      </div>`:""}
+      ${o.items.map(i=>`<div class="ocard-item"><span>${i.emoji} ${i.name} × ${i.qty}</span><span>₹${i.price*i.qty}</span></div>`).join("")}
+      <div class="ocard-divider"></div>
+      <div class="ocard-total"><span>Total</span><span style="color:var(--green-mid)">₹${o.total}</span></div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+// ── ADMIN ─────────────────────────────────────────────────
+function renderAdmin() {
+  const {adminTab, form, editProduct} = state;
+  return `
+    <div class="admin-tabs">
+      <button class="atab ${adminTab==="list"?"active":"inactive"}" onclick="setAdminTab('list')">📋 Products (${products.length})</button>
+      <button class="atab ${adminTab==="add"?"active":"inactive"}" onclick="setAdminTab('add')">➕ Add</button>
+      ${adminTab==="edit"?`<button class="atab active">✏️ Edit</button>`:""}
+    </div>
+    ${adminTab==="list" ? `
+    <div class="plist">
+      ${products.length===0?`<div class="empty"><div class="empty-icon">🥦</div><div class="empty-text">No products yet</div></div>`:""}
+      ${products.map(p=>`
+        <div class="plist-item">
+          <div class="plist-emoji">${p.emoji}</div>
+          <div class="plist-info">
+            <div class="plist-name">${p.name}</div>
+            <div class="plist-sub">${p.category} · ${p.unit}</div>
+            <div class="plist-price">₹${p.price}</div>
+          </div>
+          <div class="plist-actions">
+            <button class="edit-btn" onclick="startEdit('${p.id}')">Edit</button>
+            <button class="del-btn2" onclick="deleteProduct('${p.id}')">Del</button>
+          </div>
+        </div>`).join("")}
+    </div>` : `
+    <div class="pform">
+      <div>
+        <label class="form-label">Choose Emoji</label>
+        <div class="emoji-grid">
+          ${EMOJIS.map(e=>`<button class="emoji-btn ${form.emoji===e?"active":""}" onclick="setFormField('emoji','${e}')">${e}</button>`).join("")}
+        </div>
+      </div>
+      ${[
+        {key:"name",label:"Product Name *",placeholder:"e.g. Brinjal",type:"text"},
+        {key:"unit",label:"Unit / Weight *",placeholder:"e.g. 500g, 1 kg",type:"text"},
+        {key:"price",label:"Price (₹) *",placeholder:"e.g. 30",type:"number"},
+        {key:"stock",label:"Stock Qty",placeholder:"e.g. 50",type:"number"},
+      ].map(f=>`
+        <div>
+          <label class="form-label">${f.label}</label>
+          <input class="form-input" type="${f.type}" placeholder="${f.placeholder}" value="${form[f.key]||""}" oninput="setFormField('${f.key}',this.value)" />
+        </div>`).join("")}
+      <div>
+        <label class="form-label">Category</label>
+        <div class="chip-row">
+          ${CATEGORIES_BASE.map(c=>`<button class="chip ${form.category===c?"active":"inactive"}" onclick="setFormField('category','${c}')">${c}</button>`).join("")}
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Badge (optional)</label>
+        <div class="chip-row">
+          ${["","Fresh","Organic","Seasonal","Popular","Premium"].map(b=>`<button class="chip ${form.badge===b?"active":"inactive"}" onclick="setFormField('badge','${b}')">${b||"None"}</button>`).join("")}
+        </div>
+      </div>
+      <button class="save-btn" onclick="saveProduct()">${editProduct?"✔ Save Changes":"➕ Add Product"}</button>
+      ${editProduct?`<button class="cancel-btn" onclick="setAdminTab('list')">Cancel</button>`:""}
+    </div>`}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PAYMENT SHEET
+// ═══════════════════════════════════════════════════════════
+function openPayment() {
+  state.payStep = "select";
+  state.payMethod = null;
+  state.upiInput = "";
+  state.upiError = "";
+  renderPaySheet();
+  document.getElementById("pay-overlay").style.display = "flex";
+}
+
+function closePayment() {
+  clearInterval(state.timerInterval);
+  document.getElementById("pay-overlay").style.display = "none";
+}
+
+function renderPaySheet() {
+  const total = cartTotal();
+  const overlay = document.getElementById("pay-overlay");
+  overlay.innerHTML = `
+    <div class="pay-backdrop" id="pay-backdrop"></div>
+    <div class="pay-sheet">${renderPayStep(total)}</div>
+  `;
+  document.getElementById("pay-backdrop").onclick = () => {
+    if (state.payStep === "select") closePayment();
+  };
+}
+
+function renderPayStep(total) {
+  const {payStep, payMethod: pm} = state;
+  const handle = `<div class="sheet-handle"></div>`;
+
+  if (payStep === "select") return `${handle}
+    <div class="pay-header">
+      <div><div class="pay-amount-label">ORDER TOTAL</div><div class="pay-amount-val">₹${total}</div></div>
+      <button class="close-btn" onclick="closePayment()">✕</button>
+    </div>
+    <div class="section-label">UPI APPS</div>
+    <div class="upi-grid">
+      ${PAYMENT_METHODS.filter(x=>x.type==="upi"||x.type==="upi_id").map(m=>`
+        <div class="upi-card" onclick="selectPayMethod('${m.id}')" style="background:${m.bg}">
+          <div class="upi-icon" style="background:${m.gradient}">${m.icon}</div>
+          <span class="upi-name" style="color:${m.color}">${m.shortName}</span>
+        </div>`).join("")}
+    </div>
+    <div class="section-label" style="margin-bottom:10px">OTHER OPTIONS</div>
+    ${PAYMENT_METHODS.filter(x=>x.type==="cash").map(m=>`
+      <div class="cod-card" onclick="selectPayMethod('${m.id}')" style="background:${m.bg}">
+        <div class="cod-icon">${m.icon}</div>
+        <div class="cod-info"><div class="cod-name">${m.name}</div><div class="cod-desc">${m.desc||"Pay when your order arrives"}</div></div>
+        <span style="font-size:18px;color:#ccc">›</span>
+      </div>`).join("")}
+    <div style="height:20px"></div>
+  `;
+
+  if (payStep === "qr") return `${handle}
+    <div class="qr-screen">
+      <div class="qr-back">
+        <button class="back-btn" onclick="setPayStep('select')">←</button>
+        <div><div class="qr-method-name">${pm.name}</div><div class="qr-method-sub">Scan & Pay</div></div>
+        <div style="margin-left:auto;width:36px;height:36px;border-radius:12px;background:${pm.gradient};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;font-family:serif">${pm.icon}</div>
+      </div>
+      <div class="qr-box" style="background:linear-gradient(145deg,${pm.bg},#fff)">
+        <div class="qr-label">SCAN WITH ${pm.shortName.toUpperCase()}</div>
+        <div class="qr-wrap">${generateQRSVG(pm.id+total, 140)}</div>
+        <div class="qr-upi-id" style="color:${pm.color}">greenbasket@${pm.id}</div>
+        <div class="qr-total">₹${total}</div>
+        <div class="qr-timer">
+          <div class="timer-circle ${state.timer<=10?"urgent":""}" id="timer-circle">${state.timer}</div>
+          <span>QR expires in ${state.timer}s</span>
+        </div>
+      </div>
+      <button class="paid-btn" style="background:${pm.gradient};box-shadow:0 4px 16px ${pm.color}44" onclick="handleQRPaid()">✅ I've Paid</button>
+      <div class="qr-hint">After paying on ${pm.name}, tap "I've Paid"</div>
+    </div>
+  `;
+
+  if (payStep === "upi-id") return `${handle}
+    <div class="upi-input-screen">
+      <div class="qr-back">
+        <button class="back-btn" onclick="setPayStep('select')">←</button>
+        <div><div class="qr-method-name">Pay via UPI</div><div class="qr-method-sub">Enter your UPI ID</div></div>
+      </div>
+      <div class="amount-box">
+        <div class="amount-label">AMOUNT TO PAY</div>
+        <div class="amount-big">₹${total}</div>
+      </div>
+      <label class="field-label">UPI ID *</label>
+      <div class="upi-field-wrap">
+        <input id="upi-field" class="upi-field ${state.upiError?"error":state.upiInput.includes("@")?"valid":""}"
+          value="${state.upiInput}" placeholder="yourname@upi / @okaxis / @ybl"
+          oninput="state.upiInput=this.value;state.upiError='';renderPaySheet()" />
+        ${state.upiInput.includes("@")?`<span class="upi-check">✅</span>`:""}
+      </div>
+      ${state.upiError?`<div class="upi-error">⚠ ${state.upiError}</div>`:""}
+      <div class="upi-suffix-row">
+        ${["@okaxis","@ybl","@okhdfcbank","@oksbi"].map(s=>`
+          <button class="suffix-chip" onclick="appendSuffix('${s}')">${s}</button>`).join("")}
+      </div>
+      <button class="pay-now-btn" style="background:${state.upiInput.includes("@")?"linear-gradient(135deg,#FF6B00,#ff9800)":"#e0e0e0"};color:${state.upiInput.includes("@")?"#fff":"#aaa"}"
+        onclick="handleUPIPay()">Pay ₹${total} →</button>
+    </div>
+  `;
+
+  if (payStep === "processing") return `${handle}
+    <div class="processing-screen">
+      <div class="proc-icon" style="animation:spin 1s linear infinite">${pm?.id==="cod"?"📦":"💳"}</div>
+      <div class="proc-title">${pm?.id==="cod"?"Confirming Order...":"Verifying Payment..."}</div>
+      <div class="proc-sub">${pm?.id==="cod"?"Setting up Cash on Delivery":"Checking with "+pm?.name+"..."}</div>
+      <div class="dots">
+        ${[0,1,2].map(i=>`<div class="dot" style="background:${pm?.color||"#2d6a4f"};animation-delay:${i*0.2}s"></div>`).join("")}
+      </div>
+    </div>
+  `;
+
+  if (payStep === "done") return `${handle}
+    <div class="done-screen">
+      <div class="done-circle" style="background:${pm?.gradient||"linear-gradient(135deg,#2d6a4f,#40916c)"};box-shadow:0 6px 24px ${pm?.color||"#2d6a4f"}55">
+        ${pm?.id==="cod"?"🤝":"✅"}
+      </div>
+      <div class="done-title">${pm?.id==="cod"?"Order Confirmed!":"Payment Successful!"}</div>
+      <div class="done-sub">${pm?.id==="cod"?`Pay ₹${total} when your order arrives`:`₹${total} paid via ${pm?.name}`}</div>
+      <div class="done-txn">${pm?.id==="cod"?"Have cash ready for delivery":"TXN ID: TXN"+Date.now().toString().slice(-8)}</div>
+      <button class="done-btn" onclick="finishOrder()">View Orders →</button>
+    </div>
+  `;
+  return "";
+}
+
+// QR code generator (deterministic fake pattern)
+function generateQRSVG(seed, size) {
+  const cells = 21, cell = size/cells;
+  const hash = seed.split("").reduce((a,c,i)=>a+c.charCodeAt(0)*(i+1),0);
+  const rand = i => ((hash*9301+i*49297+233)%233280)/233280;
+  let rects = `<rect width="${size}" height="${size}" fill="white"/>`;
+  for (let r=0;r<cells;r++) for (let c=0;c<cells;c++) {
+    let on = false;
+    if ((r<7&&c<7)||(r<7&&c>=cells-7)||(r>=cells-7&&c<7)) {
+      const fr=r<7?r:r-(cells-7), fc=c<7?c:c-(cells-7);
+      on=(fr===0||fr===6||fc===0||fc===6)||(fr>=2&&fr<=4&&fc>=2&&fc<=4);
+    } else { on = rand(r*cells+c)>0.45; }
+    if (on) rects+=`<rect x="${c*cell}" y="${r*cell}" width="${cell}" height="${cell}" fill="#111"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">${rects}</svg>`;
+}
+
+// ── PAYMENT ACTIONS ───────────────────────────────────────
+function selectPayMethod(id) {
+  const m = PAYMENT_METHODS.find(x=>x.id===id);
+  state.payMethod = m;
+  state.timer = 30;
+  if (m.type === "cash") {
+    state.payStep = "processing";
+    renderPaySheet();
+    setTimeout(()=>{ state.payStep="done"; renderPaySheet(); }, 1800);
+  } else if (m.type === "upi_id") {
+    state.payStep = "upi-id";
+    renderPaySheet();
+  } else {
+    state.payStep = "qr";
+    renderPaySheet();
+    startTimer();
+  }
+}
+
+function startTimer() {
+  clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(()=>{
+    state.timer--;
+    const circ = document.getElementById("timer-circle");
+    if (circ) {
+      circ.textContent = state.timer;
+      if (state.timer <= 10) circ.classList.add("urgent");
+    }
+    if (state.timer <= 0) { clearInterval(state.timerInterval); renderPaySheet(); }
+  }, 1000);
+}
+
+function setPayStep(step) {
+  clearInterval(state.timerInterval);
+  state.payStep = step;
+  state.timer = 30;
+  renderPaySheet();
+}
+
+function handleQRPaid() {
+  clearInterval(state.timerInterval);
+  state.payStep = "processing";
+  renderPaySheet();
+  setTimeout(()=>{ state.payStep="done"; renderPaySheet(); }, 1800);
+}
+
+function handleUPIPay() {
+  if (!state.upiInput.includes("@")) {
+    state.upiError = "Enter a valid UPI ID (e.g. name@upi)";
+    renderPaySheet();
+    return;
+  }
+  state.payStep = "processing";
+  renderPaySheet();
+  setTimeout(()=>{ state.payStep="done"; renderPaySheet(); }, 2200);
+}
+
+function appendSuffix(s) {
+  const base = state.upiInput.split("@")[0];
+  state.upiInput = base + s;
+  state.upiError = "";
+  renderPaySheet();
+}
+
+function finishOrder() {
+  const items = cartItems();
+  const total = cartTotal();
+  const order = {
+    id: "ORD-"+Date.now().toString().slice(-6),
+    items, total,
+    paymentMethod: state.payMethod?.id,
+    date: new Date().toLocaleDateString(),
+    time: new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
+    status: "Confirmed",
+  };
+  orders.unshift(order);
+  cart = {};
+  saveAll();
+  closePayment();
+  goto("orders");
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════════
+function goto(view) {
+  state.view = view;
+  if (view !== "admin") { state.adminTab = "list"; state.editProduct = null; state.form = {name:"",category:"Leafy",price:"",unit:"",emoji:"🥬",badge:"",stock:""}; }
+  render();
+}
+
+function onSearch(v) { state.search = v; renderContent(); renderHeader(); }
+function clearSearch() { state.search = ""; renderContent(); renderHeader(); }
+function setCat(c) { state.catFilter = c; renderContent(); }
+function setSort(v) { state.sortBy = v; renderContent(); }
+function clearFilters() { state.catFilter="All"; state.search=""; renderContent(); renderHeader(); }
+
+function addToCart(id) { cart[id] = (cart[id]||0)+1; saveAll(); renderContent(); renderNav(); renderHeader(); }
+function decCart(id)   { if(cart[id]>1) cart[id]--; else delete cart[id]; saveAll(); renderContent(); renderNav(); renderHeader(); }
+function delCart(id)   { delete cart[id]; saveAll(); renderContent(); renderNav(); renderHeader(); }
+
+function setAdminTab(tab) {
+  state.adminTab = tab;
+  if (tab !== "edit") { state.editProduct = null; state.form = {name:"",category:"Leafy",price:"",unit:"",emoji:"🥬",badge:"",stock:""}; }
+  renderContent();
+}
+
+function setFormField(key, val) { state.form[key] = val; renderContent(); }
+
+function startEdit(id) {
+  const p = products.find(x=>x.id===id);
+  state.editProduct = p;
+  state.form = {name:p.name,category:p.category,price:String(p.price),unit:p.unit,emoji:p.emoji,badge:p.badge||"",stock:String(p.stock)};
+  state.adminTab = "edit";
+  renderContent();
+}
+
+function saveProduct() {
+  const {form, editProduct} = state;
+  if (!form.name.trim()||!form.price||!form.unit.trim()) { showToast("Fill all required fields","error"); return; }
+  if (editProduct) {
+    products = products.map(p=>p.id===editProduct.id?{...p,...form,price:+form.price,stock:+form.stock}:p);
+    showToast("Product updated ✔");
+  } else {
+    products.push({...form,id:"p"+Date.now(),price:+form.price,stock:+form.stock});
+    showToast("Product added ✔");
+  }
+  saveAll();
+  setAdminTab("list");
+}
+
+function deleteProduct(id) {
+  products = products.filter(p=>p.id!==id);
+  delete cart[id];
+  saveAll();
+  showToast("Product deleted","error");
+  renderContent();
+  renderNav();
+  renderHeader();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PWA – Service Worker + Install Prompt
+// ═══════════════════════════════════════════════════════════
+let deferredPrompt = null;
+
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById("install-banner");
+  banner.style.display = "flex";
+});
+
+document.getElementById("install-yes-btn").addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById("install-banner").style.display = "none";
+});
+
+document.getElementById("install-no-btn").addEventListener("click", () => {
+  document.getElementById("install-banner").style.display = "none";
+});
+
+window.addEventListener("appinstalled", () => {
+  document.getElementById("install-banner").style.display = "none";
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+
+// ── BOOT ─────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
